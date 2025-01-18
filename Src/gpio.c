@@ -19,6 +19,7 @@
 
 #define LED_PIN 5 // Pin 5 of GPIOA
 #define BUTTON_PIN 13 // Pin 13 of GPIOC
+#define LED_PUERTA 4 // Pin 4 of GPIOC
 
 
 void configure_gpio_for_usart(void)
@@ -83,9 +84,9 @@ void configure_gpio(void)
 // Emula el comprtamiento de la puerta
 void gpio_set_door_led_state(uint8_t state) {
     if (state) {
-        GPIOA->ODR |= (1 << 4); // encender LED estado puerta
+        GPIOC->ODR |= (1 << LED_PUERTA); // encender LED estado puerta
     } else {
-        GPIOA->ODR &= ~(1 << 4); // apagar LED estado puerta
+        GPIOC->ODR &= ~(1 << LED_PUERTA); // apagar LED estado puerta
     }
 }
 
