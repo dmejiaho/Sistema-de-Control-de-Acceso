@@ -12,6 +12,8 @@ typedef enum {
     PERM_UNLOCK
 } DoorState_t;
 
+
+
 DoorState_t current_state = LOCKED;
 uint32_t unlock_timer = 0;
 
@@ -33,25 +35,25 @@ void run_state_machine(void) {
 }
 
 void handle_event(uint8_t event) {
-    if (event == 1) { // Una pulsacion
-        usart2_send_string("Boton presionado\r\n");
-        gpio_set_door_led_state(1); // Prender Led_Puerta
+    if (event == 1) { // Single button press
+        usart2_send_string("Pulsacion del boton\r\n");
+        gpio_set_door_led_state(1); // Turn on door state LED
         current_state = TEMP_UNLOCK;
         unlock_timer = systick_GetTick();
-    } else if (event == 2) { // Dos pulsaciones
-        usart2_send_string("Doble pulsacion\r\n");
-        gpio_set_door_led_state(1); // Prender Led_Puerta
+    } else if (event == 2) { // Double button press
+        usart2_send_string("Doble pulsacion del boton\r\n");
+        gpio_set_door_led_state(1); // Turn on door state LED
         current_state = PERM_UNLOCK;
-    } else if (event == 'O') { // UART OPEN
-        usart2_send_string("Abrir\r\n");
-        gpio_set_door_led_state(1); // Prender Led_Puerta
-        current_state = TEMP_UNLOCK;
+    } else if (event == 'O') { // UART OPEN command
+        usart2_send_string("Puerta desbloqueada\r\n");
+        gpio_set_door_led_state(1); // Turn on door state LED
+        current_state = PERM_UNLOCK;
         unlock_timer = systick_GetTick();
-    } else if (event == 'C') { // UART Cerrar
-        usart2_send_string("Cerrar\r\n");
-        gpio_set_door_led_state(0); // Apagar Led_Puerta
+    } else if (event == 'C') { // UART CLOSE command
+        usart2_send_string("Puerta cerrada\r\n");
+        gpio_set_door_led_state(0); // Turn off door state LED
         current_state = LOCKED;
-    }
+    } 
 }
 
 int main(void) {
@@ -70,15 +72,16 @@ int main(void) {
 
         uint8_t button_pressed = button_driver_get_event();
         if (button_pressed != 0) {
-            usart2_send_string("Boton presionado\r\n");
+            usart2_send_string("Pulsacion detectada\r\n");
             handle_event(button_pressed);
             button_pressed = 0;
         }
 
         uint8_t rx_byte = usart2_get_command();
         if (rx_byte != 0) {
-            usart2_send_string("Command Received\r\n");
+            usart2_send_string("Command received\r\n");
             handle_event(rx_byte);
+            rx_byte = 0;
         }
 
         run_state_machine();

@@ -19,7 +19,8 @@
 
 #define LED_PIN 5 // Pin 5 of GPIOA
 #define BUTTON_PIN 13 // Pin 13 of GPIOC
-#define LED_PUERTA 4 // Pin 4 of GPIOC
+#define LED_PUERTA 4  //Definir un led en el puerto GPIOC
+
 
 
 void configure_gpio_for_usart(void)
@@ -50,17 +51,15 @@ void configure_gpio_for_usart(void)
     GPIOA->PUPDR &= ~(3U << (3 * 2)); // No pull-up, no pull-down for PA3
 }
 
+void init_gpio_pin(GPIO_t *GPIOx, uint8_t pin, uint8_t mode)
+{
+    GPIOx->MODER &= ~(0x3 << (pin * 2)); // Clear MODER bits for this pin
+    GPIOx->MODER |= (mode << (pin * 2)); // Set MODER bits for this pin
+}
 
 void configure_gpio(void)
 {
-   *RCC_AHB2ENR |= (1 << 0) | (1 << 2); // Enable clock for GPIOA and GPIOC
-
-    // Configure PA5 as output
-    GPIOA->MODER &= ~(3U << (LED_PIN * 2)); // Clear mode bits for PA5
-    GPIOA->MODER |= (1U << (LED_PIN * 2));  // Set output mode for PA5
-
-    // Configure PC13 as input
-    GPIOC->MODER &= ~(3U << (BUTTON_PIN * 2)); // Clear mode bits for PC13
+    *RCC_AHB2ENR |= (1 << 0) | (1 << 2); // Enable clock for GPIOA and GPIOC
 
     // Enable clock for SYSCFG
     *RCC_APB2ENR |= (1 << 0); // RCC_APB2ENR_SYSCFGEN
@@ -69,6 +68,7 @@ void configure_gpio(void)
     SYSCFG->EXTICR[3] &= ~(0xF << 4); // Clear bits for EXTI13
     SYSCFG->EXTICR[3] |= (0x2 << 4);  // Map EXTI13 to Port C
 
+    
     // Configure EXTI13 for falling edge trigger
     EXTI->FTSR1 |= (1 << BUTTON_PIN);  // Enable falling trigger
     EXTI->RTSR1 &= ~(1 << BUTTON_PIN); // Disable rising trigger
@@ -76,17 +76,24 @@ void configure_gpio(void)
     // Unmask EXTI13
     EXTI->IMR1 |= (1 << BUTTON_PIN);
 
+
+    init_gpio_pin(GPIOA, LED_PIN, 0x1); // Set LED pin as output
+    init_gpio_pin(GPIOC, LED_PUERTA, 0x1); // Set LED_PUERTA pin as output
+    init_gpio_pin(GPIOC, BUTTON_PIN, 0x0); // Set BUTTON pin as input
+
     // Enable EXTI15_10 interrupt
     *NVIC_ISER1 |= (1 << (EXTI15_10_IRQn - 32));
+
+    configure_gpio_for_usart();
     
 }
 
 // Emula el comprtamiento de la puerta
 void gpio_set_door_led_state(uint8_t state) {
     if (state) {
-        GPIOC->ODR |= (1 << LED_PUERTA); // encender LED estado puerta
+        GPIOC->ODR |= (1 << 4); // encender LED estado puerta
     } else {
-        GPIOC->ODR &= ~(1 << LED_PUERTA); // apagar LED estado puerta
+        GPIOC->ODR &= ~(1 << 4); // apagar LED estado puerta
     }
 }
 
@@ -98,9 +105,8 @@ volatile uint8_t button_pressed = 0; // Flag to indicate button press
 uint8_t button_driver_get_event(void)
 {
     uint8_t event = button_pressed;
-    button_pressed = 0;
+    button_pressed = 0; // Reset flag
     return event;
-
 }
 
 uint32_t b1_tick = 0;
